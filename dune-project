@@ -13,6 +13,7 @@
     (ocaml (>= 4.12))
     logs
     (base64 (>= 3.5))
-    logs)
+    logs
+    (ounit2 :with-test))
   (depopts
     ssl))

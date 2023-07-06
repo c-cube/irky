@@ -10,6 +10,7 @@ depends: [
   "logs"
   "base64" {>= "3.5"}
   "logs"
+  "ounit2" {with-test}
 ]
 depopts: ["ssl"]
 build: [
