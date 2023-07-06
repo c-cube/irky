@@ -1,3 +1,4 @@
 (executable
   (name example)
-  (libraries irky irky.unix logs))
+  (optional)
+  (libraries irky irky.unix irky.unix.ssl logs))

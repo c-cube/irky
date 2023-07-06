@@ -6,6 +6,8 @@ let host = ref "irc.libera.chat"
 let port = ref 6667
 let nick = ref "irkytest"
 let debug = ref false
+let ssl = ref false
+let check_certif = ref false
 let channel = ref "##demo_irc"
 
 let on_msg client result =
@@ -19,9 +21,19 @@ let on_msg client result =
     Log.app (fun k -> k "got other message: %s" (M.show msg));
     flush stdout
 
-let io = Irky_unix.io
-
 let main () : unit =
+  (* pick our implementation *)
+  let io =
+    if !ssl then
+      Irky_unix_ssl.io
+        ~config:
+          Irky_unix_ssl.Config.
+            { default with check_certificate = !check_certif }
+        ()
+    else
+      Irky_unix.io
+  in
+
   C.reconnect_loop ~reconnect_delay:15. ~io
     ~connect:(fun () ->
       C.connect_by_name ~server:!host ~port:!port ~nick:!nick ~io ())
@@ -33,13 +45,15 @@ let main () : unit =
     on_msg
 
 let options =
-  Arg.align
-    [
-      "-h", Arg.Set_string host, " set remove server host name";
-      "-p", Arg.Set_int port, " set remote server port";
-      "--chan", Arg.Set_string channel, " channel to join";
-      "-d", Arg.Set debug, " enable debug";
-    ]
+  [
+    "-h", Arg.Set_string host, " set remove server host name";
+    "-p", Arg.Set_int port, " set remote server port";
+    "--chan", Arg.Set_string channel, " channel to join";
+    "--ssl", Arg.Set ssl, " enable ssl";
+    "--ssl-check", Arg.Set check_certif, " check SSL certificate";
+    "-d", Arg.Set debug, " enable debug";
+  ]
+  |> Arg.align
 
 let () =
   Arg.parse options ignore "example [options]";
