@@ -1,36 +1,18 @@
+DUNE_OPTS?=
+
 all:
-	dune build @install --profile release
+	@dune build @install $(DUNE_OPTS)
 
 doc:
-	dune build @doc
+	@dune build @doc $(DUNE_OPTS)
 
 clean:
-	dune clean
+	@dune clean
 
 test:
-	dune runtest --force
+	@dune runtest --force $(DUNE_OPTS) 
 
-install:
-	dune install
-
-uninstall:
-	dune uninstall
-
+WATCH?=@check
 watch:
-	@dune build @all --watch
+	@dune build $(DUNE_OPTS) $(WATCH) --watch
 
-ARGS=
-
-example1:
-	dune exec examples/$@.exe --profile release -- $(ARGS)
-
-example2:
-	dune exec examples/$@.exe --profile release -- $(ARGS)
-
-example2_unix:
-	dune exec examples/$@.exe --profile release -- $(ARGS)
-
-example_tls:
-	dune exec examples/$@.exe --profile release -- $(ARGS)
-
-.PHONY: example1 example2 example2_unix example_tls test

@@ -1,8 +1,9 @@
 (executable
-  (name test_unit_main)
-  (libraries oUnit irc-client))
+ (name test_unit_main)
+ (libraries ounit2 irky))
 
-(alias
-  (name   runtest)
-  (package irc-client)
-  (action (run ./test_unit_main.exe)))
+(rule
+ (alias runtest)
+ (package irky)
+ (action
+  (run ./test_unit_main.exe)))

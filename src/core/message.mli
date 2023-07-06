@@ -1,32 +1,34 @@
 (** IRC message parsing. *)
 
+open Common_
+
 (** A type representing an IRC command,
     following {{: https://tools.ietf.org/html/rfc2812#section-3} RFC 2812} *)
 type command =
   | PASS of string
   | NICK of string
-  | USER of string list (** see rfc *)
+  | USER of string list  (** see rfc *)
   | OPER of string * string  (** name * password *)
   | MODE of string * string  (** nick * mode string *)
-  | QUIT of string (** quit message *)
-  | SQUIT of string * string (** server * comment *)
+  | QUIT of string  (** quit message *)
+  | SQUIT of string * string  (** server * comment *)
   | JOIN of string list * string list  (** channels * key list *)
-  | JOIN0 (** join 0 (parts all channels) *)
-  | PART of string list * string (** channels * comment *)
-  | TOPIC of string * string (** chan * topic *)
-  | NAMES of string list (** channels *)
-  | LIST of string list (** channels *)
+  | JOIN0  (** join 0 (parts all channels) *)
+  | PART of string list * string  (** channels * comment *)
+  | TOPIC of string * string  (** chan * topic *)
+  | NAMES of string list  (** channels *)
+  | LIST of string list  (** channels *)
   | INVITE of string * string  (** nick * chan *)
-  | KICK of string list * string * string (** channels * nick * comment *)
-  | PRIVMSG of string * string (** target * message *)
-  | NOTICE of string * string (** target * message *)
+  | KICK of string list * string * string  (** channels * nick * comment *)
+  | PRIVMSG of string * string  (** target * message *)
+  | NOTICE of string * string  (** target * message *)
   | PING of string * string
   | PONG of string * string
   | Other of string * string list  (** other cases *)
 
 type t = {
   prefix: string option;
-  command : command;
+  command: command;
 }
 
 (** {2 Constructors} *)
@@ -49,21 +51,21 @@ val privmsg : target:string -> string -> t
 val notice : target:string -> string -> t
 val ping : message1:string -> message2:string -> t
 val pong : message1:string -> message2:string -> t
-
 val other : cmd:string -> params:string list -> t
 
 (** {2 Printing} *)
 
-val to_string : t -> string
-(** Format the message into a string that can be sent on IRC *)
-
-val output : out_channel -> t -> unit
-
 val write_buf : Buffer.t -> t -> unit
 
-(** {2 Parsing} *)
+val to_string : ?buf:Buffer.t -> t -> string
+(** Format the message into a string that can be sent on IRC *)
 
-type 'a or_error = ('a, string) Result.result
+val output : ?buf:Buffer.t -> out_channel -> t -> unit
+
+val show : t -> string
+(** Debug printing *)
+
+(** {2 Parsing} *)
 
 type parse_result = t or_error
 

@@ -1,8 +1,5 @@
 (** Helper functions for buffering data as it is read from a socket. *)
 
-val split : str:string -> c:char -> string list
-(** Split a string [str] at each occurrence of the character [c]. *)
-
 val split1_exn : str:string -> c:char -> string * string
 (** Split a string [str] at the first occurrence of the character [c].
     @raise Not_found if the separator isn't found. *)

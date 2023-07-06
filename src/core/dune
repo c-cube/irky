@@ -1,5 +1,3 @@
 (library
-  (name irc_client)
-  (public_name irc-client)
-  (wrapped false)
-  (libraries result bytes logs base64))
+  (public_name irky)
+  (libraries logs base64 unix))
