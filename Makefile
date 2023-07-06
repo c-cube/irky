@@ -16,3 +16,4 @@ WATCH?=@check
 watch:
 	@dune build $(DUNE_OPTS) $(WATCH) --watch
 
+.PHONY: test watch clean all doc
