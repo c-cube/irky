@@ -15,14 +15,14 @@ jobs:
           #- macos-latest
           - ubuntu-latest
         ocaml-compiler:
-          - 4.12
-          - 5.0
+          - '4.12'
+          - '5.0'
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - run: brew install openssl
-        if:  matrix.os == 'macos-latest'
+      #- run: brew install openssl
+      #  if:  matrix.os == 'macos-latest'
 
       - name: Checkout code
         uses: actions/checkout@v2
