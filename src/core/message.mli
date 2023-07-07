@@ -31,6 +31,8 @@ type t = {
   command: command;
 }
 
+(* TODO: get nick, reply_to, rich privmsg representation *)
+
 (** {2 Constructors} *)
 
 val pass : string -> t
