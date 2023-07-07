@@ -45,27 +45,30 @@ let send_auth_sasl (self : t) ~user ~password =
     Base64.encode_string @@ spf "%s\x00%s\x00%s" user user password
   in
   let data = spf "AUTHENTICATE %s" b64_login in
-  send_raw (self : t) ~data
+  send_raw self ~data
 
-let send_pass (self : t) ~password = send (self : t) (M.pass password)
+let send_pass self ~password = send (self : t) (M.pass password)
 
 let send_ping (self : t) ~message1 ~message2 =
-  send (self : t) (M.ping ~message1 ~message2)
+  send self (M.ping ~message1 ~message2)
 
 let send_pong (self : t) ~message1 ~message2 =
-  send (self : t) (M.pong ~message1 ~message2)
+  send self (M.pong ~message1 ~message2)
 
 let send_privmsg (self : t) ~target ~message =
-  send (self : t) (M.privmsg ~target message)
+  send self (M.privmsg ~target message)
 
 let send_notice (self : t) ~target ~message =
-  send (self : t) (M.notice ~target message)
+  send self (M.notice ~target message)
+
+let send_part (self : t) ~channels ~message : unit =
+  send self (M.part ~chans:channels ~comment:(Some message))
 
 let send_quit ?(msg = "") (self : t) () = send (self : t) (M.quit ~msg)
 
 let send_user (self : t) ~username ~mode ~realname =
   let msg = M.user ~username ~mode ~realname in
-  send (self : t) msg
+  send self msg
 
 let make_ io ic oc : t =
   let read_length = 1024 in

@@ -26,6 +26,8 @@ val send_privmsg : t -> target:string -> message:string -> unit
 val send_notice : t -> target:string -> message:string -> unit
 (** Send the NOTICE command. *)
 
+val send_part : t -> channels:string list -> message:string -> unit
+
 val send_quit : ?msg:string -> t -> unit -> unit
 (** Send the QUIT command. *)
 
