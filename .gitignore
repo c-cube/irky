@@ -1,5 +1,6 @@
 *.swp
 
+_opam
 _build
 oUnit-anon.cache
 
