@@ -16,7 +16,7 @@ jobs:
           - ubuntu-latest
         ocaml-compiler:
           - '4.12'
-          - '5.0'
+          - '5.1'
 
     runs-on: ${{ matrix.os }}
 
@@ -31,6 +31,7 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          allow-prerelease-opam: true
 
       - run: opam install . --deps-only --with-doc --with-test
       - run: opam install ssl -y
