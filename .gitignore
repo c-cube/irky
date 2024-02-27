@@ -1,10 +1,6 @@
 *.swp
-
 _opam
 _build
-oUnit-anon.cache
-
-travis-coveralls.sh
-.coverage/
 *.merlin
 *.install
+*.tmp
