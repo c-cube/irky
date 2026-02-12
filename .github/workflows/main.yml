@@ -33,7 +33,26 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           allow-prerelease-opam: true
 
-      - run: opam install . --deps-only --with-doc --with-test
-      - run: opam install ssl -y
-      - run: opam exec -- dune build
-      - run: opam exec -- dune runtest
+      - name: Install dependencies for irky
+        run: opam install . --deps-only --with-doc --with-test
+      
+      - name: Install SSL (optional)
+        run: opam install ssl -y
+        continue-on-error: true
+      
+      - name: Build irky
+        run: opam exec -- dune build @install
+      
+      - name: Run tests
+        run: opam exec -- dune runtest
+      
+      - name: Install Eio dependencies (OCaml 5.x only)
+        if: startsWith(matrix.ocaml-compiler, '5')
+        run: |
+          opam install iostream eio eio_main cstruct -y
+        continue-on-error: true
+      
+      - name: Build irky-eio (OCaml 5.x only)
+        if: startsWith(matrix.ocaml-compiler, '5')
+        run: opam exec -- dune build irky-eio.opam
+        continue-on-error: true

@@ -1,5 +1,4 @@
 open Irky.Common_
-open Irky.Io
 module Log = (val Logs.src_log (Logs.Src.create "irky.unix.ssl"))
 
 module Config = struct
@@ -14,28 +13,24 @@ module Config = struct
     spf "{check_certificate=%b; proto=_}" self.check_certificate
 end
 
-let read_with_timeout timeout sslfd fd buf i len : _ result =
-  (* retry loop *)
+let read_blocking sslfd fd buf off len =
   let rec try_read () =
-    match Ssl.read sslfd buf i len with
-    | n -> Ok n
-    | exception Ssl.Read_error Ssl.Error_want_read -> block ()
-  and block () =
-    match Unix.select [ fd ] [] [] timeout with
-    | [ _fd ], _, _ -> try_read ()
-    | [], _, _ -> Error `timeout
-    | _ -> assert false
+    match Ssl.read sslfd buf off len with
+    | n -> n
+    | exception Ssl.Read_error Ssl.Error_want_read ->
+      ignore (Unix.select [ fd ] [] [] (-1.) : _ * _ * _);
+      try_read ()
   in
   try_read ()
 
-let rec write_ sslfd fd buf i len =
-  match Ssl.write sslfd buf i len with
+let rec write_ sslfd fd buf off len =
+  match Ssl.write sslfd buf off len with
   | n -> n
   | exception Ssl.Write_error Ssl.Error_want_write ->
     ignore (Unix.select [] [ fd ] [] (-1.) : _ * _ * _);
-    write_ sslfd fd buf i len
+    write_ sslfd fd buf off len
 
-let ic_of_fd (sslfd : Ssl.socket) (fd : Unix.file_descr) : In_channel.t =
+let ic_of_fd (sslfd : Ssl.socket) (fd : Unix.file_descr) : Iostream.In.t =
   Unix.set_nonblock fd;
   let close () =
     try
@@ -43,29 +38,36 @@ let ic_of_fd (sslfd : Ssl.socket) (fd : Unix.file_descr) : In_channel.t =
       Unix.close fd
     with _ -> ()
   in
-  let read buf i len =
-    match read_with_timeout (-1.) sslfd fd buf i len with
-    | Ok n -> n
-    | Error `timeout -> assert false
-  in
+  let input buf off len = read_blocking sslfd fd buf off len in
+  Iostream.In.create ~close ~input ()
 
-  let read_with_timeout timeout buf i len =
-    read_with_timeout timeout sslfd fd buf i len
-  in
-  { In_channel.close; read; read_with_timeout }
-
-let oc_of_fd sslfd (fd : Unix.file_descr) : Out_channel.t =
+let oc_of_fd sslfd (fd : Unix.file_descr) : Iostream.Out.t =
   Unix.set_nonblock fd;
-  let close () = try Unix.close fd with _ -> () in
-  let rec write buf i len : unit =
-    if len > 0 then (
-      let n = write_ sslfd fd buf i len in
-      write buf (i + n) (len - n)
-    )
-  in
-  { Out_channel.close; write; flush = ignore }
+  object
+    method close () = try Unix.close fd with _ -> ()
+    
+    method output buf off len =
+      let rec loop off len =
+        if len > 0 then (
+          let n = write_ sslfd fd buf off len in
+          loop (off + n) (len - n)
+        )
+      in
+      loop off len
+  end
 
-let connect ~(config : Config.t) addr port : In_channel.t * Out_channel.t =
+let connect ~(config : Config.t) ~host ~port : Iostream.In.t * Iostream.Out.t =
+  (* DNS resolution *)
+  let addrs =
+    try
+      let entry = Unix.gethostbyname host in
+      Array.to_list entry.Unix.h_addr_list
+    with Not_found -> []
+  in
+  let addr = match addrs with
+    | [] -> failwith (Printf.sprintf "Could not resolve %s" host)
+    | addr :: _ -> addr
+  in
   let ssl = Ssl.create_context config.proto Ssl.Client_context in
   if config.check_certificate then (
     (* from https://github.com/johnelse/ocaml-irc-client/pull/21 *)
@@ -82,10 +84,9 @@ let connect ~(config : Config.t) addr port : In_channel.t * Out_channel.t =
   Ssl.connect sslsock;
   ic_of_fd sslsock sock, oc_of_fd sslsock sock
 
-let gethostbyname = Irky_unix.io.gethostbyname
 let time = Irky_unix.io.time
-let spawn = Irky_unix.io.spawn
 let sleep = Irky_unix.io.sleep
+let with_timeout = Irky_unix.io.with_timeout
 
-let io ~config () : t =
-  { sleep; spawn; gethostbyname; connect = connect ~config; time }
+let io ~config () : Irky.Io.t =
+  { connect = connect ~config; sleep; time; with_timeout }

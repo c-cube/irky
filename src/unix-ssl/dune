@@ -3,4 +3,4 @@
   (public_name irky.unix.ssl)
   (synopsis "Io backend for Irky, using Unix + openSSL")
   (optional)
-  (libraries irky irky.unix unix threads ssl))
+  (libraries irky irky.unix unix threads ssl iostream))

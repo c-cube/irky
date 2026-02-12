@@ -34,27 +34,26 @@ val send_quit : ?msg:string -> t -> unit -> unit
 val send_user : t -> username:string -> mode:int -> realname:string -> unit
 (** Send the USER command. *)
 
-val connect :
+val connect_exn :
   ?username:string ->
   ?mode:int ->
   ?realname:string ->
   ?password:string ->
   ?sasl:bool ->
-  addr:Io.inet_addr ->
+  host:string ->
   port:int ->
   nick:string ->
   io:Io.t ->
   unit ->
   t
-(** Connect to an IRC server at address [addr]. The PASS command will be
-    sent if [password] is not None and if [sasl] is [false].
+(** Connect to an IRC server at hostname [host].
+    @raise Failure if DNS resolution fails or connection fails.
     @param sasl if true, try to use SASL (plain) authentication with the server.
       This is an IRCv3 extension and might not be supported everywhere; it
-      might also require a secure transport (see {!Irc_client_lwt_ssl}
-      or {!Irc_client_tls} for example). This param exists @since 0.7.
+      might also require a secure transport. This param exists @since 0.7.
   *)
 
-val connect_by_name :
+val connect :
   ?username:string ->
   ?mode:int ->
   ?realname:string ->
@@ -65,10 +64,10 @@ val connect_by_name :
   nick:string ->
   io:Io.t ->
   unit ->
-  t option
-(** Try to resolve the [server] name using DNS, otherwise behaves like
-    {!connect}. Returns [None] if no IP could be found for the given
-    name. See {!connect} for more details. *)
+  (t, string) result
+(** Try to resolve the [server] name using DNS and connect to an IRC server.
+    Returns [Error msg] if DNS resolution fails or connection fails.
+    See {!connect_exn} for more details. *)
 
 val listen : ?timeout:float -> t -> (t -> Message.t -> unit) -> unit
 (** [listen connection f] listens for incoming messages on
@@ -84,7 +83,7 @@ val reconnect_loop :
   ?reconnect:bool ->
   reconnect_delay:float ->
   io:Io.t ->
-  connect:(unit -> t option) ->
+  connect:(unit -> (t, string) result) ->
   on_connect:(t -> unit) ->
   (t -> Message.t -> unit) ->
   unit
