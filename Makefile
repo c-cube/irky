@@ -12,6 +12,12 @@ clean:
 test:
 	@dune runtest --force $(DUNE_OPTS) 
 
+format:
+	@dune build $(DUNE_OPTS) @fmt --auto-promote
+
+format-check:
+	@dune build $(DUNE_OPTS) @fmt --display=quiet
+
 WATCH?=@check
 watch:
 	@dune build $(DUNE_OPTS) $(WATCH) --watch

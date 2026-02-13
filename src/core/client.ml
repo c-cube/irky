@@ -1,17 +1,13 @@
 open Common_
-open Io
 module Log = Utils.Log
 module M = Message
 
 type t = {
   io: Io.t;
-  ic: In_channel.t;
-  oc: Out_channel.t;
-  buffer: Buffer.t;
-  read_length: int;
-  read_data: Bytes.t; (* for reading *)
-  lines: string Queue.t; (* lines read so far *)
-  active: bool Atomic.t; (* mutable bg: unit Io.Task.t; *)
+  ic: Io.input;
+  oc: Io.output;
+  ic_buf: Iostream.In_buf.t;
+  active: bool Atomic.t;
 }
 
 let[@inline] terminated self : bool = not (Atomic.get self.active)
@@ -19,16 +15,15 @@ let[@inline] terminated self : bool = not (Atomic.get self.active)
 let shutdown self =
   if Atomic.exchange self.active false then (
     Log.info (fun k -> k "shutdown IRC client");
-    (* FIXME: wait for bg thread to finish *)
-    (* self.bg.join (); *)
-    self.ic.close ();
-    self.oc.close ()
+    self.ic#close ();
+    self.oc#close ()
   )
 
 let send_raw (self : t) ~data =
   Log.debug (fun k -> k "send: %s" data);
   let data = spf "%s\r\n" data in
-  Io.Out_channel.write_str self.oc data
+  let bytes = Bytes.unsafe_of_string data in
+  self.oc#output bytes 0 (Bytes.length bytes)
 
 let send (self : t) msg = send_raw (self : t) ~data:(M.to_string msg)
 
@@ -71,44 +66,31 @@ let send_user (self : t) ~username ~mode ~realname =
   send self msg
 
 let make_ io ic oc : t =
-  let read_length = 1024 in
-  {
-    io;
-    ic;
-    oc;
-    buffer = Buffer.create 128;
-    read_length;
-    read_data = Bytes.make read_length ' ';
-    lines = Queue.create ();
-    active = Atomic.make true;
-  }
+  let ic_buf = Iostream.In_buf.bufferized ic in
+  { io; ic; oc; ic_buf; active = Atomic.make true }
 
 type 'a input_res =
   | Read of 'a
   | Timeout
   | End
 
-let rec next_line_ ~timeout (self : t) : string input_res =
+let next_line_ ~timeout (self : t) : string input_res =
   if terminated self then
     End
-  else if Queue.length self.lines > 0 then
-    Read (Queue.pop self.lines)
   else (
-    (* Read some data into our string. *)
-    match
-      self.ic.read_with_timeout timeout self.read_data 0 self.read_length
+    try
+      let line =
+        self.io.with_timeout timeout (fun () ->
+            match Iostream.In_buf.input_line self.ic_buf with
+            | None -> raise End_of_file
+            | Some line -> line)
+      in
+      Read line
     with
-    | Error `timeout -> Timeout
-    | Ok 0 ->
-      (* EOF from server - we have quit or been kicked. *)
+    | End_of_file ->
       shutdown self;
       End
-    | Ok len ->
-      (* read some data, push lines into [c.lines] (if any) *)
-      let input = Bytes.sub_string self.read_data 0 len in
-      let lines = Utils.handle_input ~buffer:self.buffer ~input in
-      List.iter (fun l -> Queue.push l self.lines) lines;
-      next_line_ ~timeout self
+    | Io.Timeout -> Timeout
   )
 
 type nick_retry = {
@@ -158,9 +140,9 @@ let wait_for_welcome ~start (self : t) ~nick =
   loop ();
   Log.info (fun k -> k "finished waiting for welcome msg")
 
-let connect ?username ?(mode = 0) ?(realname = "irc-client") ?password
-    ?(sasl = true) ~addr ~port ~nick ~(io : Io.t) () =
-  let ic, oc = io.connect addr port in
+let connect_exn ?username ?(mode = 0) ?(realname = "irc-client") ?password
+    ?(sasl = true) ~host ~port ~nick ~(io : Io.t) () =
+  let ic, oc = io.connect ~host ~port in
   let self = make_ io ic oc in
 
   let cap_end = ref false in
@@ -181,15 +163,15 @@ let connect ?username ?(mode = 0) ?(realname = "irc-client") ?password
   wait_for_welcome ~start:(io.time ()) self ~nick;
   self
 
-let connect_by_name ?(username = "irc-client") ?(mode = 0)
-    ?(realname = "irc-client") ?password ?sasl ~server ~port ~nick ~io () =
-  match io.gethostbyname server with
-  | [] -> None
-  | addr :: _ ->
+let connect ?(username = "irc-client") ?(mode = 0) ?(realname = "irc-client")
+    ?password ?sasl ~server ~port ~nick ~io () =
+  try
     let conn =
-      connect ~addr ~port ~username ~mode ~realname ~nick ?password ?sasl ~io ()
+      connect_exn ~host:server ~port ~username ~mode ~realname ~nick ?password
+        ?sasl ~io ()
     in
-    Some conn
+    Ok conn
+  with Failure msg -> Error msg
 
 let default_timeout = 80.
 
@@ -222,17 +204,17 @@ let listen ?timeout:(server_timeout = default_timeout) (self : t) f : unit =
 
 exception Exit_reconnect_loop
 
-let reconnect_loop ?timeout ?(reconnect = true) ~reconnect_delay ~io ~connect
-    ~on_connect f : unit =
+let reconnect_loop ?timeout ?(reconnect = true) ~reconnect_delay ~(io : Io.t)
+    ~connect ~on_connect f : unit =
   let reconnect_delay = max reconnect_delay 2. in
   let continue = ref true in
   while !continue do
     (try
        match connect () with
-       | None ->
-         Log.info (fun k -> k "could not connect");
+       | Error msg ->
+         Log.info (fun k -> k "could not connect: %s" msg);
          if not reconnect then continue := false
-       | Some connection ->
+       | Ok connection ->
          on_connect connection;
          listen ?timeout connection f;
          Log.info (fun k -> k "connection terminated.");

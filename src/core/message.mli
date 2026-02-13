@@ -2,8 +2,8 @@
 
 open Common_
 
-(** A type representing an IRC command,
-    following {{: https://tools.ietf.org/html/rfc2812#section-3} RFC 2812} *)
+(** A type representing an IRC command, following
+    {{:https://tools.ietf.org/html/rfc2812#section-3} RFC 2812} *)
 type command =
   | PASS of string
   | NICK of string

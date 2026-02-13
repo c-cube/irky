@@ -10,10 +10,21 @@
   (name irky)
   (synopsis "The Irky IRC client library")
   (depends
-    (ocaml (>= 4.12))
-    logs
+    (ocaml (>= 5.0))
     (base64 (>= 3.5))
+    iostream
     logs
     (ounit2 :with-test))
   (depopts
     ssl))
+
+(package
+  (name irky-eio)
+  (synopsis "IRC client library using Eio")
+  (depends
+    (ocaml (>= 5.0))
+    (eio (>= 0.12))
+    (eio_main (>= 0.12))
+    logs
+    (base64 (>= 3.5))))
+
