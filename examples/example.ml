@@ -45,7 +45,7 @@ let main () : unit =
 
 let options =
   [
-    "-h", Arg.Set_string host, " set remove server host name";
+    "-h", Arg.Set_string host, " set remote server host name";
     "-p", Arg.Set_int port, " set remote server port";
     "--chan", Arg.Set_string channel, " channel to join";
     "--ssl", Arg.Set ssl, " enable ssl";
