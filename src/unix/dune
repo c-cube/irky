@@ -1,5 +1,5 @@
 (library
-  (name irky_unix)
-  (public_name irky.unix)
-  (synopsis "Io backend for Irky, using Unix")
-  (libraries irky unix threads iostream))
+ (name irky_unix)
+ (public_name irky.unix)
+ (synopsis "Io backend for Irky, using Unix")
+ (libraries irky unix threads iostream))

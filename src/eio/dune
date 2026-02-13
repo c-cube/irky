@@ -1,5 +1,5 @@
 (library
-  (name irky_eio)
-  (public_name irky-eio)
-  (synopsis "IRC client library using Eio")
-  (libraries irky iostream eio eio.unix cstruct))
+ (name irky_eio)
+ (public_name irky-eio)
+ (synopsis "IRC client library using Eio")
+ (libraries irky iostream eio eio.unix cstruct))

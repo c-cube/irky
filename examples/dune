@@ -1,9 +1,9 @@
 (executable
-  (name example)
-  (optional)
-  (libraries irky irky.unix irky.unix.ssl logs))
+ (name example)
+ (optional)
+ (libraries irky irky.unix irky.unix.ssl logs))
 
 (executable
-  (name example_eio)
-  (optional)
-  (libraries irky-eio eio_main logs))
+ (name example_eio)
+ (optional)
+ (libraries irky-eio eio_main logs))
