@@ -10,7 +10,7 @@
   (name irky)
   (synopsis "The Irky IRC client library")
   (depends
-    (ocaml (>= 4.12))
+    (ocaml (>= 5.0))
     (base64 (>= 3.5))
     iostream
     logs

@@ -6,7 +6,7 @@ authors: ["john else" "simon cruanes"]
 license: "MIT"
 depends: [
   "dune" {>= "2.0"}
-  "ocaml" {>= "4.12"}
+  "ocaml" {>= "5.0"}
   "base64" {>= "3.5"}
   "iostream"
   "logs"
