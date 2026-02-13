@@ -1,4 +1,4 @@
-let input_of_flow ?(buf_size=4096) flow : Iostream.In.t =
+let input_of_flow ?(buf_size = 4096) flow : Iostream.In.t =
   let close () = () in
   (* Allocate a reusable buffer once *)
   let read_buf = Cstruct.create buf_size in
@@ -13,12 +13,12 @@ let input_of_flow ?(buf_size=4096) flow : Iostream.In.t =
   in
   Iostream.In.create ~close ~input ()
 
-let output_of_flow ?(buf_size=4096) flow : Iostream.Out.t =
+let output_of_flow ?(buf_size = 4096) flow : Iostream.Out.t =
   (* Allocate a reusable buffer once *)
   let write_buf = Cstruct.create buf_size in
   object
     method close () = ()
-    
+
     method output buf off len =
       (* For small writes, use our buffer to avoid allocating Cstruct *)
       if len <= buf_size then (

@@ -66,15 +66,16 @@ val connect :
   unit ->
   (t, string) result
 (** Try to resolve the [server] name using DNS and connect to an IRC server.
-    Returns [Error msg] if DNS resolution fails or connection fails.
-    See {!connect_exn} for more details. *)
+    Returns [Error msg] if DNS resolution fails or connection fails. See
+    {!connect_exn} for more details. *)
 
 val listen : ?timeout:float -> t -> (t -> Message.t -> unit) -> unit
-(** [listen connection f] listens for incoming messages on
-      [connection]. All server pings are handled internally; all other
-      messages are passed, along with [connection], to [callback].
-      @param timeout number of seconds without receiving a "ping"
-      from the server, before which we consider we're disconnected. *)
+(** [listen connection f] listens for incoming messages on [connection]. All
+    server pings are handled internally; all other messages are passed, along
+    with [connection], to [callback].
+    @param timeout
+      number of seconds without receiving a "ping" from the server, before which
+      we consider we're disconnected. *)
 
 exception Exit_reconnect_loop
 
@@ -87,16 +88,14 @@ val reconnect_loop :
   on_connect:(t -> unit) ->
   (t -> Message.t -> unit) ->
   unit
-(** A combination of {!connect} and {!listen} that, every time
-    the connection is terminated, tries to start a new one
-    after [after] seconds. It stops reconnecting if the exception
-    [Exit_reconnect_loop] is raised.
+(** A combination of {!connect} and {!listen} that, every time the connection is
+    terminated, tries to start a new one after [after] seconds. It stops
+    reconnecting if the exception [Exit_reconnect_loop] is raised.
     @param reconnect_delay time in seconds before trying to reconnect
-    @param connect how to reconnect
-      (a closure over {!connect} or {!connect_by_name})
+    @param connect
+      how to reconnect (a closure over {!connect} or {!connect_by_name})
     @param on_connect is passed every new connection
-    @param f the callback for {!listen}, given every received message.
-*)
+    @param f the callback for {!listen}, given every received message. *)
 
 val shutdown : t -> unit
 (** Shutdown client. It cannot be used again. *)

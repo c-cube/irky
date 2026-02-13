@@ -35,8 +35,7 @@ let main () : unit =
   in
 
   C.reconnect_loop ~reconnect_delay:15. ~io
-    ~connect:(fun () ->
-      C.connect ~server:!host ~port:!port ~nick:!nick ~io ())
+    ~connect:(fun () -> C.connect ~server:!host ~port:!port ~nick:!nick ~io ())
     ~on_connect:(fun client ->
       Log.info (fun k -> k "Connected");
       Log.app (fun k -> k "send join msg for `%s`" !channel);
@@ -60,8 +59,8 @@ let () =
   Logs.set_level ~all:true
     (Some
        (if !debug then
-         Logs.Debug
-       else
-         Logs.Info));
+          Logs.Debug
+        else
+          Logs.Info));
   Logs.set_reporter @@ Logs.format_reporter ();
   main ()

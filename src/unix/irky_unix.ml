@@ -9,8 +9,7 @@ let ic_of_fd (fd : Unix.file_descr) : Iostream.In.t =
   Unix.set_nonblock fd;
   let close () = try Unix.close fd with _ -> () in
   let input buf off len =
-    try
-      Unix.read fd buf off len
+    try Unix.read fd buf off len
     with Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) ->
       ignore (Unix.select [ fd ] [] [] (-1.) : _ * _ * _);
       Unix.read fd buf off len
@@ -21,7 +20,7 @@ let oc_of_fd (fd : Unix.file_descr) : Iostream.Out.t =
   Unix.set_nonblock fd;
   object
     method close () = try Unix.close fd with _ -> ()
-    
+
     method output buf off len =
       let rec loop off len =
         if len > 0 then (
@@ -56,34 +55,40 @@ let with_timeout duration f =
   let timed_out = ref false in
   let mutex = Mutex.create () in
   let cond = Condition.create () in
-  
-  let worker = Thread.create (fun () ->
-    let r = try f () with e -> raise e in
-    Mutex.lock mutex;
-    if not !timed_out then result := Some r;
-    Condition.signal cond;
-    Mutex.unlock mutex;
-  ) () in
-  
-  let timeout_thread = Thread.create (fun () ->
-    Thread.delay duration;
-    Mutex.lock mutex;
-    timed_out := true;
-    Condition.signal cond;
-    Mutex.unlock mutex;
-  ) () in
-  
+
+  let worker =
+    Thread.create
+      (fun () ->
+        let r = try f () with e -> raise e in
+        Mutex.lock mutex;
+        if not !timed_out then result := Some r;
+        Condition.signal cond;
+        Mutex.unlock mutex)
+      ()
+  in
+
+  let timeout_thread =
+    Thread.create
+      (fun () ->
+        Thread.delay duration;
+        Mutex.lock mutex;
+        timed_out := true;
+        Condition.signal cond;
+        Mutex.unlock mutex)
+      ()
+  in
+
   Mutex.lock mutex;
   while !result = None && not !timed_out do
     Condition.wait cond mutex
   done;
   let res = !result in
   Mutex.unlock mutex;
-  
+
   (* Clean up threads - best effort *)
   (try Thread.join worker with _ -> ());
   (try Thread.join timeout_thread with _ -> ());
-  
+
   match res with
   | Some r -> r
   | None -> raise Irky.Io.Timeout

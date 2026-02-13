@@ -67,13 +67,7 @@ let send_user (self : t) ~username ~mode ~realname =
 
 let make_ io ic oc : t =
   let ic_buf = Iostream.In_buf.bufferized ic in
-  {
-    io;
-    ic;
-    oc;
-    ic_buf;
-    active = Atomic.make true;
-  }
+  { io; ic; oc; ic_buf; active = Atomic.make true }
 
 type 'a input_res =
   | Read of 'a
@@ -87,9 +81,9 @@ let next_line_ ~timeout (self : t) : string input_res =
     try
       let line =
         self.io.with_timeout timeout (fun () ->
-          match Iostream.In_buf.input_line self.ic_buf with
-          | None -> raise End_of_file
-          | Some line -> line)
+            match Iostream.In_buf.input_line self.ic_buf with
+            | None -> raise End_of_file
+            | Some line -> line)
       in
       Read line
     with
@@ -169,11 +163,12 @@ let connect_exn ?username ?(mode = 0) ?(realname = "irc-client") ?password
   wait_for_welcome ~start:(io.time ()) self ~nick;
   self
 
-let connect ?(username = "irc-client") ?(mode = 0)
-    ?(realname = "irc-client") ?password ?sasl ~server ~port ~nick ~io () =
+let connect ?(username = "irc-client") ?(mode = 0) ?(realname = "irc-client")
+    ?password ?sasl ~server ~port ~nick ~io () =
   try
     let conn =
-      connect_exn ~host:server ~port ~username ~mode ~realname ~nick ?password ?sasl ~io ()
+      connect_exn ~host:server ~port ~username ~mode ~realname ~nick ?password
+        ?sasl ~io ()
     in
     Ok conn
   with Failure msg -> Error msg
@@ -209,8 +204,8 @@ let listen ?timeout:(server_timeout = default_timeout) (self : t) f : unit =
 
 exception Exit_reconnect_loop
 
-let reconnect_loop ?timeout ?(reconnect = true) ~reconnect_delay ~(io : Io.t) ~connect
-    ~on_connect f : unit =
+let reconnect_loop ?timeout ?(reconnect = true) ~reconnect_delay ~(io : Io.t)
+    ~connect ~on_connect f : unit =
   let reconnect_delay = max reconnect_delay 2. in
   let continue = ref true in
   while !continue do

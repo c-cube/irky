@@ -45,7 +45,7 @@ let oc_of_fd sslfd (fd : Unix.file_descr) : Iostream.Out.t =
   Unix.set_nonblock fd;
   object
     method close () = try Unix.close fd with _ -> ()
-    
+
     method output buf off len =
       let rec loop off len =
         if len > 0 then (
@@ -64,7 +64,8 @@ let connect ~(config : Config.t) ~host ~port : Iostream.In.t * Iostream.Out.t =
       Array.to_list entry.Unix.h_addr_list
     with Not_found -> []
   in
-  let addr = match addrs with
+  let addr =
+    match addrs with
     | [] -> failwith (Printf.sprintf "Could not resolve %s" host)
     | addr :: _ -> addr
   in

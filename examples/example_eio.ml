@@ -23,13 +23,12 @@ let main () : unit =
   Eio_main.run @@ fun env ->
   let net = Eio.Stdenv.net env in
   let clock = Eio.Stdenv.clock env in
-  
+
   Eio.Switch.run @@ fun sw ->
   let io = Irky_eio.io ~net ~clock ~sw in
-  
+
   C.reconnect_loop ~io ~reconnect_delay:60.0
-    ~connect:(fun () ->
-      C.connect ~server:!host ~port:!port ~nick:!nick ~io ())
+    ~connect:(fun () -> C.connect ~server:!host ~port:!port ~nick:!nick ~io ())
     ~on_connect:(fun client ->
       Log.info (fun k -> k "Connected");
       Log.app (fun k -> k "send join msg for `%s`" !channel);
@@ -51,8 +50,8 @@ let () =
   Logs.set_level ~all:true
     (Some
        (if !debug then
-         Logs.Debug
-       else
-         Logs.Info));
+          Logs.Debug
+        else
+          Logs.Info));
   Logs.set_reporter @@ Logs.format_reporter ();
   main ()

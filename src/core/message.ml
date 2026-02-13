@@ -90,8 +90,8 @@ let split_spaces str = String.split_on_char ' ' str
 let split_comma str = String.split_on_char ',' str
 let split_space1 str = Utils.split1_exn ~str ~c:' '
 
-(** split parameters into tokens separated by spaces. If a trail, prefixed
-   by ':', exists, it is the last token *)
+(** split parameters into tokens separated by spaces. If a trail, prefixed by
+    ':', exists, it is the last token *)
 let split_params params =
   let s, trail = extract_trail params in
   let tokens =
