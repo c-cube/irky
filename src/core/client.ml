@@ -9,9 +9,11 @@ type t = {
   oc: Out_channel.t;
   buffer: Buffer.t;
   read_length: int;
-  read_data: Bytes.t; (* for reading *)
-  lines: string Queue.t; (* lines read so far *)
-  active: bool Atomic.t; (* mutable bg: unit Io.Task.t; *)
+  read_data: Bytes.t; (** for reading *)
+  lines: string Queue.t; (** lines read so far *)
+  active: bool Atomic.t;
+
+  (* mutable bg: unit Io.Task.t; *)
 }
 
 let[@inline] terminated self : bool = not (Atomic.get self.active)

@@ -7,9 +7,9 @@ license: "MIT"
 depends: [
   "dune" {>= "2.0"}
   "ocaml" {>= "4.12"}
-  "logs"
   "base64" {>= "3.5"}
   "logs"
+  "fuseau"
   "ounit2" {with-test}
 ]
 depopts: ["ssl"]

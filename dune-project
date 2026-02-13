@@ -11,9 +11,9 @@
   (synopsis "The Irky IRC client library")
   (depends
     (ocaml (>= 4.12))
-    logs
     (base64 (>= 3.5))
     logs
+    fuseau
     (ounit2 :with-test))
   (depopts
     ssl))
