@@ -1,4 +1,4 @@
-(lang dune 2.0)
+(lang dune 3.0)
 (generate_opam_files true)
 (name irky)
 (license MIT)
@@ -24,7 +24,7 @@
   (depends
     (ocaml (>= 5.0))
     (eio (>= 0.12))
-    (eio_main (>= 0.12))
+    (eio-ssl (>= 0.3))
+    (eio_main :with-test)
     logs
     (base64 (>= 3.5))))
-
