@@ -26,5 +26,6 @@
     (eio (>= 0.12))
     (eio-ssl (>= 0.3))
     (eio_main :with-test)
+    (irky (= :version))
     logs
     (base64 (>= 3.5))))
