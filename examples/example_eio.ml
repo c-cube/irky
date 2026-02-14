@@ -3,10 +3,12 @@ module M = Irky.Message
 module Log = (val Logs.src_log (Logs.Src.create "irky-example"))
 
 let host = ref "irc.libera.chat"
-let port = ref 6667
+let port = ref 6697 (* Standard IRC TLS port *)
 let nick = ref "irkytest_eio"
 let debug = ref false
 let channel = ref "##demo_irc"
+let check_cert = ref true
+let ssl = ref true
 
 let on_msg client msg =
   match msg with
@@ -25,7 +27,13 @@ let main () : unit =
   let clock = Eio.Stdenv.clock env in
 
   Eio.Switch.run @@ fun sw ->
-  let io = Irky_eio.io ~net ~clock ~sw in
+  let io =
+    if !ssl then (
+      let config = Irky_eio.Ssl_config.make ~check_certificate:!check_cert () in
+      Irky_eio.io_ssl ~config ~net ~clock ~sw
+    ) else
+      Irky_eio.io ~net ~clock ~sw
+  in
 
   C.reconnect_loop ~io ~reconnect_delay:60.0
     ~connect:(fun () -> C.connect ~server:!host ~port:!port ~nick:!nick ~io ())
@@ -42,6 +50,11 @@ let options =
     "-p", Arg.Set_int port, " set remote server port";
     "--chan", Arg.Set_string channel, " channel to join";
     "-d", Arg.Set debug, " enable debug";
+    "--ssl", Arg.Set ssl, " use ssl";
+    "--no-ssl", Arg.Clear ssl, " do not use ssl";
+    ( "--check-cert",
+      Arg.Bool (( := ) check_cert),
+      " do/do not check certificates" );
   ]
   |> Arg.align
 

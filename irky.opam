@@ -5,16 +5,17 @@ maintainer: ["simon cruanes"]
 authors: ["john else" "simon cruanes"]
 license: "MIT"
 depends: [
-  "dune" {>= "2.0"}
+  "dune" {>= "3.0"}
   "ocaml" {>= "5.0"}
   "base64" {>= "3.5"}
   "iostream"
   "logs"
   "ounit2" {with-test}
+  "odoc" {with-doc}
 ]
 depopts: ["ssl"]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   [
     "dune"
     "build"

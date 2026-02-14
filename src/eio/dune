@@ -2,4 +2,4 @@
  (name irky_eio)
  (public_name irky-eio)
  (synopsis "IRC client library using Eio")
- (libraries irky iostream eio eio.unix cstruct))
+ (libraries irky iostream eio eio.unix eio-ssl cstruct))

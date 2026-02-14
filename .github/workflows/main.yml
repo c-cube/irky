@@ -49,7 +49,7 @@ jobs:
       - name: Install Eio dependencies (OCaml 5.x only)
         if: startsWith(matrix.ocaml-compiler, '5')
         run: |
-          opam install iostream eio eio_main cstruct -y
+          opam install iostream eio eio-ssl eio_main cstruct -y
         continue-on-error: true
 
       - name: Build irky-eio (OCaml 5.x only)

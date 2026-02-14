@@ -1,23 +1,11 @@
+module Iostream_eio = Iostream_eio
+module Iostream_ssl = Iostream_ssl
+module Ssl_config = Iostream_ssl.Config
+
 let io ~net ~clock ~sw : Irky.Io.t =
   let connect ~host ~port =
-    (* Resolve hostname *)
-    let addrs = Eio.Net.getaddrinfo_stream net host in
-    let addr =
-      match
-        List.find_map
-          (function
-            | `Tcp (addr, _) -> Some addr
-            | _ -> None)
-          addrs
-      with
-      | Some a -> a
-      | None -> failwith (Printf.sprintf "Could not resolve %s" host)
-    in
-
-    (* Connect *)
+    let addr = Util_.resolve_addr ~net host in
     let socket = Eio.Net.connect ~sw net (`Tcp (addr, port)) in
-
-    (* Wrap in iostream *)
     let ic = Iostream_eio.input_of_flow socket in
     let oc = Iostream_eio.output_of_flow socket in
     ic, oc
@@ -33,3 +21,5 @@ let io ~net ~clock ~sw : Irky.Io.t =
   in
 
   { Irky.Io.connect; sleep; time; with_timeout }
+
+let io_ssl = Iostream_ssl.io
