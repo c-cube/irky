@@ -1,0 +1,228 @@
+{0:tutorial Tutorial}
+
+See also the {{!page-cookbook}cookbook},
+{{!page-cookbook.blueprints}blueprints} and
+{{!page-examples}examples}.
+
+{1:terms Commands and terms}
+
+With [Cmdliner] your tool's [main] function evaluates a command.
+
+A command is a value of type {!Cmdliner.Cmd.t} which gathers a command
+name and a term of type {!Cmdliner.Term.t}. A term represents both a
+command line syntax fragment and an expression to be evaluated that
+implements your tool. The type parameter of the term (and the command)
+indicates the type of the result of the evaluation.
+
+One way to create terms is by lifting regular OCaml values with
+{!Cmdliner.Term.const}. Terms can be applied to terms evaluating to
+functional values with {!Cmdliner.Term.app}.
+
+For example, in a [revolt.ml] file, for the function:
+
+{@ocaml name=example_revolt1.ml[
+let revolt () = print_endline "Revolt!"
+]}
+
+the term :
+
+{@ocaml name=example_revolt1.ml[
+open Cmdliner
+
+let revolt_term = Term.app (Term.const revolt) (Term.const ())
+]}
+
+is a term that evaluates to the result (and effect) of the [revolt]
+function. This term can be associated to a command:
+
+{@ocaml name=example_revolt1.ml[
+let cmd_revolt = Cmd.make (Cmd.info "revolt") revolt_term
+]}
+
+and evaluated with {!Cmdliner.Cmd.val-eval}:
+{@ocaml name=example_revolt1.ml[
+let main () = Cmd.eval cmd_revolt
+let () = if !Sys.interactive then () else exit (main ())
+]}
+
+This defines a command line tool named ["revolt"] (this name will be
+used in error reporting and documentation generation), without command
+line arguments, that just prints ["Revolt!"] on [stdout].
+
+{@sh[
+> ocamlfind ocamlopt -linkpkg -package cmdliner -o revolt revolt.ml
+> ./revolt
+Revolt!
+]}
+
+{1:term_syntax Term syntax}
+
+There is a special syntax that uses OCaml's
+{{:https://ocaml.org/manual/5.3/bindingops.html}binding operators} for
+writing terms which is less error prone when the number of arguments
+you want to give to your function grows. In particular it allows you to
+easily lift functions which have labels.
+
+So in fact the program we have just shown above is usually rather
+written this way:
+
+{@ocaml name=example_revolt2.ml[
+let revolt () = print_endline "Revolt!"
+
+open Cmdliner
+open Cmdliner.Term.Syntax
+
+let cmd_revolt =
+  Cmd.make (Cmd.info "revolt") @@
+  let+ () = Term.const () in
+  revolt ()
+
+let main () = Cmd.eval cmd_revolt
+let () = if !Sys.interactive then () else exit (main ())
+]}
+
+{1:args_as_terms Command line arguments as terms}
+
+The combinators in the {!Cmdliner.Arg} module allow to extract command
+line arguments as terms. These terms can then be applied to lifted
+OCaml functions to be evaluated. A term that uses terms that correspond
+to command line argument implicitely defines a command line syntax
+fragment. We show this on an concrete example.
+
+In a [chorus.ml] file, consider the [chorus] function that prints
+repeatedly a given message :
+
+{@ocaml name=example_chorus.ml[
+let chorus ~count msg = for i = 1 to count do print_endline msg done
+]}
+
+we want to make it available from the command line with the synopsis:
+
+{@sh[
+chorus [-c COUNT | --count=COUNT] [MSG]
+]}
+
+where [COUNT] defaults to [10] and [MSG] defaults to ["Revolt!"]. We
+first define a term corresponding to the [--count] option:
+
+{@ocaml name=example_chorus.ml[
+open Cmdliner
+open Cmdliner.Term.Syntax
+
+let count =
+  let doc = "Repeat the message $(docv) times." in
+  Arg.(value & opt int 10 & info ["c"; "count"] ~doc ~docv:"COUNT")
+]}
+
+This says that [count] is a term that evaluates to the value of an
+optional argument of type [int] that defaults to [10] if unspecified
+and whose option name is either [-c] or [--count]. The arguments [doc]
+and [docv] are used to generate the option's man page information.
+
+The term for the positional argument [MSG] is:
+
+{@ocaml name=example_chorus.ml[
+let msg =
+  let env =
+    let doc = "Overrides the default message to print." in
+    Cmd.Env.info "CHORUS_MSG" ~doc
+  in
+  let doc = "The message to print." in
+  Arg.(value & pos 0 string "Revolt!" & info [] ~env ~doc ~docv:"MSG")
+]}
+
+which says that [msg] is a term whose value is the positional argument
+at index [0] of type [string] and defaults to ["Revolt!"]  or the
+value of the environment variable [CHORUS_MSG] if the argument is
+unspecified on the command line. Here again [doc] and [docv] are used
+for the man page information.
+
+We can now define a term and command for invoking the [chorus] function
+using the {{!term_syntax}term syntax} and the obscure but handy
+{{:https://ocaml.org/manual/5.2/bindingops.html#ss%3Aletops-punning}
+let-punning} OCaml notation. This also shows that the
+value {!Cmdliner.Cmd.val-info} can be given more
+information about the term we execute which is notably used to
+to generate the tool's man page.
+
+{@ocaml name=example_chorus.ml[
+let chorus_cmd =
+  let doc = "Print a customizable message repeatedly" in
+  let man = [
+    `S Manpage.s_bugs;
+    `P "Email bug reports to <bugs@example.org>." ]
+  in
+  Cmd.make (Cmd.info "chorus" ~version:"v2.1.0" ~doc ~man) @@
+  let+ count and+ msg in
+  chorus ~count msg
+
+let main () = Cmd.eval chorus_cmd
+let () = if !Sys.interactive then () else exit (main ())
+]}
+
+Since we provided a [~version] string, the tool will automatically
+respond to the [--version] option by printing this string.
+
+Besides a tool using {!Cmdliner.Cmd.val-eval} always responds to the
+[--help] option by showing the tool's man page
+{{!page-tool_man.manual}generated} using the information you provided
+with {!Cmdliner.Cmd.val-info} and {!Cmdliner.Arg.val-info}. Here is
+the manual generated by our example:
+
+{v
+> ocamlfind ocamlopt -linkpkg -package cmdliner -o chorus chorus.ml
+> ./chorus --help
+NAME
+       chorus - Print a customizable message repeatedly
+
+SYNOPSIS
+       chorus [--count=COUNT] [OPTION]… [MSG]
+
+ARGUMENTS
+       MSG (absent=Revolt! or CHORUS_MSG env)
+           The message to print.
+
+OPTIONS
+       -c COUNT, --count=COUNT (absent=10)
+           Repeat the message COUNT times.
+
+COMMON OPTIONS
+       --help[=FMT] (default=auto)
+           Show this help in format FMT. The value FMT must be one of auto,
+           pager, groff or plain. With auto, the format is pager or plain
+           whenever the TERM env var is dumb or undefined.
+
+       --version
+           Show version information.
+
+EXIT STATUS
+       chorus exits with the following status:
+
+       0   on success.
+
+       123 on indiscriminate errors reported on standard error.
+
+       124 on command line parsing errors.
+
+       125 on unexpected internal errors (bugs).
+
+ENVIRONMENT
+       These environment variables affect the execution of chorus:
+
+       CHORUS_MSG
+           Overrides the default message to print.
+
+BUGS
+       Email bug reports to <bugs@example.org>.
+v}
+
+If a pager is available, this output is written to a pager. This help
+is also available in plain text or in the
+{{:http://www.gnu.org/software/groff/groff.html}groff} man page format
+by invoking the program with the option [--help=plain] or
+[--help=groff].
+
+And with this you should master the basics of Cmdliner, for examples
+of more complex command line definitions consult the
+{{!page-examples}examples}. For more tips, off-the-shelf recipes and
+conventions have look at the {{!page-cookbook}cookbook}.
