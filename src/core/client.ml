@@ -1,5 +1,6 @@
 open Common_
 module Log = Utils.Log
+module Config = Config
 module M = Message
 
 type t = {
@@ -140,36 +141,31 @@ let wait_for_welcome ~start (self : t) ~nick =
   loop ();
   Log.info (fun k -> k "finished waiting for welcome msg")
 
-let connect_exn ?username ?(mode = 0) ?(realname = "irc-client") ?password
-    ?(sasl = true) ~host ~port ~nick ~(io : Io.t) () =
-  let ic, oc = io.connect ~host ~port in
+let connect_exn ~(config : Config.t) ~(io : Io.t) () =
+  let ic, oc = io.connect ~host:config.server ~port:config.port in
   let self = make_ io ic oc in
 
   let cap_end = ref false in
-  (match username, password with
-  | Some user, Some password when sasl ->
+  (match config.username, config.password with
+  | Some user, Some password when config.sasl ->
     cap_end := true;
     send_auth_sasl self ~user ~password
   | _, Some password -> send_pass self ~password
   | _ -> ());
   let username =
-    match username with
+    match config.username with
     | Some u -> u
     | None -> "ocaml-irc-client"
   in
-  send_nick self ~nick;
-  send_user self ~username ~mode ~realname;
+  send_nick self ~nick:config.nick;
+  send_user self ~username ~mode:config.mode ~realname:config.realname;
   if !cap_end then send_raw self ~data:"CAP END";
-  wait_for_welcome ~start:(io.time ()) self ~nick;
+  wait_for_welcome ~start:(io.time ()) self ~nick:config.nick;
   self
 
-let connect ?(username = "irc-client") ?(mode = 0) ?(realname = "irc-client")
-    ?password ?sasl ~server ~port ~nick ~io () =
+let connect ~(config : Config.t) ~io () =
   try
-    let conn =
-      connect_exn ~host:server ~port ~username ~mode ~realname ~nick ?password
-        ?sasl ~io ()
-    in
+    let conn = connect_exn ~config ~io () in
     Ok conn
   with Failure msg -> Error msg
 

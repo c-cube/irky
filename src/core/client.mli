@@ -1,6 +1,11 @@
-(** Client *)
+(** Main client module.
+
+    See {!reconnect_loop} for the real entrypoint. *)
+
+module Config = Config
 
 type t
+(** The client. Stateful. *)
 
 val send : t -> Message.t -> unit
 (** Send the given message *)
@@ -34,18 +39,7 @@ val send_quit : ?msg:string -> t -> unit -> unit
 val send_user : t -> username:string -> mode:int -> realname:string -> unit
 (** Send the USER command. *)
 
-val connect_exn :
-  ?username:string ->
-  ?mode:int ->
-  ?realname:string ->
-  ?password:string ->
-  ?sasl:bool ->
-  host:string ->
-  port:int ->
-  nick:string ->
-  io:Io.t ->
-  unit ->
-  t
+val connect_exn : config:Config.t -> io:Io.t -> unit -> t
 (** Connect to an IRC server at hostname [host].
     @raise Failure if DNS resolution fails or connection fails.
     @param sasl if true, try to use SASL (plain) authentication with the server.
@@ -53,18 +47,7 @@ val connect_exn :
       might also require a secure transport. This param exists @since 0.7.
   *)
 
-val connect :
-  ?username:string ->
-  ?mode:int ->
-  ?realname:string ->
-  ?password:string ->
-  ?sasl:bool ->
-  server:string ->
-  port:int ->
-  nick:string ->
-  io:Io.t ->
-  unit ->
-  (t, string) result
+val connect : config:Config.t -> io:Io.t -> unit -> (t, string) result
 (** Try to resolve the [server] name using DNS and connect to an IRC server.
     Returns [Error msg] if DNS resolution fails or connection fails. See
     {!connect_exn} for more details. *)
@@ -88,14 +71,46 @@ val reconnect_loop :
   on_connect:(t -> unit) ->
   (t -> Message.t -> unit) ->
   unit
-(** A combination of {!connect} and {!listen} that, every time the connection is
-    terminated, tries to start a new one after [after] seconds. It stops
-    reconnecting if the exception [Exit_reconnect_loop] is raised.
-    @param reconnect_delay time in seconds before trying to reconnect
+(** The main entrypoint for a client that automatically reconnects.
+
+    This function handles the complete lifecycle of an IRC connection: it
+    connects to the server, runs your connection initialization code, listens
+    for messages using your callback, and automatically reconnects if the
+    connection is lost.
+
+    {b Simple example:}
+    {v
+    let config = Config.make ~server:"irc.libera.chat" ~port:6667 ~nick:"mybot" () in
+    C.reconnect_loop ~reconnect_delay:15. ~io
+      ~connect:(fun () -> C.connect ~config ~io ())
+      ~on_connect:(fun client ->
+        C.send_join client ~channel:"##mychannel";
+        C.send_privmsg client ~target:"##mychannel" ~message:"Hello!")
+      (fun client msg ->
+        match msg.Message.command with
+        | Message.PRIVMSG (target, text) ->
+            (* handle messages *)
+            ()
+        | _ -> ())
+    v}
+
+    The loop continues indefinitely until either [reconnect=false] is set, or
+    the {!Exit_reconnect_loop} exception is raised from within the callback.
+
+    @param timeout
+      seconds without server ping before considering us disconnected
+    @param reconnect
+      if [false], stops after first disconnection (default: [true])
+    @param reconnect_delay minimum seconds to wait before reconnecting
     @param connect
-      how to reconnect (a closure over {!connect} or {!connect_by_name})
-    @param on_connect is passed every new connection
-    @param f the callback for {!listen}, given every received message. *)
+      a function that attempts to establish a new connection, typically a
+      closure over {!connect} with your {!Config.t}
+    @param on_connect
+      called immediately after each successful connection, useful for joining
+      channels, sending initial messages, etc.
+    @param f
+      callback invoked for every message received from the server; raising
+      {!Exit_reconnect_loop} here will exit the loop *)
 
 val shutdown : t -> unit
 (** Shutdown client. It cannot be used again. *)

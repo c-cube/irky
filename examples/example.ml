@@ -34,8 +34,9 @@ let main () : unit =
       Irky_unix.io
   in
 
+  let config = C.Config.make ~server:!host ~port:!port ~nick:!nick () in
   C.reconnect_loop ~reconnect_delay:15. ~io
-    ~connect:(fun () -> C.connect ~server:!host ~port:!port ~nick:!nick ~io ())
+    ~connect:(fun () -> C.connect ~config ~io ())
     ~on_connect:(fun client ->
       Log.info (fun k -> k "Connected");
       Log.app (fun k -> k "send join msg for `%s`" !channel);
