@@ -1,4 +1,6 @@
 
 ## 0.1
 
-fork from [irc-client](https://github.com/johnelse/ocaml-irc-client), using eio
+- Fork from [irc-client](https://github.com/johnelse/ocaml-irc-client)
+- Direct style IO backends (unix, Eio)
+- Optional SSL/TLS support
