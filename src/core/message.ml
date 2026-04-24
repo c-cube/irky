@@ -61,13 +61,21 @@ let other ~cmd ~params = make_other_ cmd params
 
 type parse_result = t or_error
 
+exception ParseError of string * string
+
+let fail_ msg err = raise (ParseError (msg, err))
+
 let extract_prefix str =
   if str <> "" && str.[0] = ':' then (
-    let prefix_length = String.index str ' ' - 1 in
-    assert (prefix_length >= 0);
-    ( Some (String.sub str 1 prefix_length),
-      String.sub str (prefix_length + 2)
-        (String.length str - (prefix_length + 2)) )
+    match String.index_opt str ' ' with
+    | None -> fail_ str "prefix without following command"
+    | Some space_idx ->
+      let prefix_length = space_idx - 1 in
+      if prefix_length <= 0 then
+        fail_ str "empty prefix"
+      else
+        ( Some (String.sub str 1 prefix_length),
+          String.sub str (space_idx + 1) (String.length str - (space_idx + 1)) )
   ) else
     None, str
 
@@ -84,8 +92,6 @@ let extract_trail str =
     rest, Some (String.sub str trail_start trail_length)
   with Not_found -> str, None
 
-exception ParseError of string * string
-
 let split_spaces str = String.split_on_char ' ' str
 let split_comma str = String.split_on_char ',' str
 let split_space1 str = Utils.split1_exn ~str ~c:' '
@@ -100,8 +106,6 @@ let split_params params =
   match trail with
   | None -> tokens
   | Some trail -> tokens @ [ trail ]
-
-let fail_ msg err = raise (ParseError (msg, err))
 
 (** expect exactly one word *)
 let expect1 msg = function

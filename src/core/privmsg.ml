@@ -27,12 +27,9 @@ let get_nick str = Utils.split1_exn ~c:'!' ~str |> fst
 let of_msg (msg : Message.t) =
   match msg.command with
   | PRIVMSG (target, message) ->
-    Some
-      {
-        nick = Option.value ~default:"msg prefix" msg.prefix |> get_nick;
-        target;
-        message;
-      }
+    (match msg.prefix with
+    | None -> None
+    | Some prefix -> Some { nick = get_nick prefix; target; message })
   | _ -> None
 
 let of_msg_exn msg =
