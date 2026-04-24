@@ -93,4 +93,4 @@ let with_timeout duration f =
   | Some r -> r
   | None -> raise Irky.Io.Timeout
 
-let io : Irky.Io.t = { connect; sleep; time; with_timeout }
+let io : Irky.Io.t = { connect; sleep; time; with_timeout; secure = false }

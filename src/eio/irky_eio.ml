@@ -20,6 +20,6 @@ let io ~net ~clock ~sw : Irky.Io.t =
     | Error `Timeout -> raise Irky.Io.Timeout
   in
 
-  { Irky.Io.connect; sleep; time; with_timeout }
+  { Irky.Io.connect; sleep; time; with_timeout; secure = false }
 
 let io_ssl = Iostream_ssl.io

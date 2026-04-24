@@ -161,6 +161,11 @@ let connect_exn ~(config : Config.t) ~(io : Io.t) () =
   let cap_end = ref false in
   (match config.username, config.password with
   | Some user, Some password when config.sasl ->
+    if not io.secure then
+      Log.warn (fun k ->
+          k
+            "SASL authentication over a non-TLS connection: credentials will \
+             be sent in cleartext");
     cap_end := true;
     send_auth_sasl self ~user ~password
   | _, Some password -> send_pass self ~password

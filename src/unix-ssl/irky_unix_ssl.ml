@@ -90,4 +90,4 @@ let sleep = Irky_unix.io.sleep
 let with_timeout = Irky_unix.io.with_timeout
 
 let io ~config () : Irky.Io.t =
-  { connect = connect ~config; sleep; time; with_timeout }
+  { connect = connect ~config; sleep; time; with_timeout; secure = true }

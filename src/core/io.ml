@@ -12,4 +12,6 @@ type t = {
   with_timeout: 'a. float -> (unit -> 'a) -> 'a;
       (** [with_timeout duration f] runs [f()] with a timeout.
           @raise Timeout if the timeout expires *)
+  secure: bool;
+      (** true if [connect] establishes an encrypted (TLS) connection *)
 }
