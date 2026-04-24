@@ -26,7 +26,20 @@ let send_raw (self : t) ~data =
   let bytes = Bytes.unsafe_of_string data in
   self.oc#output bytes 0 (Bytes.length bytes)
 
-let send (self : t) msg = send_raw (self : t) ~data:(M.to_string msg)
+let max_irc_msg_len = 510
+
+let send (self : t) msg =
+  let data = M.to_string msg in
+  let data =
+    if String.length data > max_irc_msg_len then (
+      Log.warn (fun k ->
+          k "IRC message too long (%d chars), truncating to %d"
+            (String.length data) max_irc_msg_len);
+      String.sub data 0 max_irc_msg_len
+    ) else
+      data
+  in
+  send_raw self ~data
 
 let send_join (self : t) ~channel =
   send (self : t) (M.join ~chans:[ channel ] ~keys:None)
