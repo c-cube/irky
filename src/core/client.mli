@@ -42,10 +42,10 @@ val send_user : t -> username:string -> mode:int -> realname:string -> unit
 val connect_exn : config:Config.t -> io:Io.t -> unit -> t
 (** Connect to an IRC server at hostname [host].
     @raise Failure if DNS resolution fails or connection fails.
-    @param sasl if true, try to use SASL (plain) authentication with the server.
-      This is an IRCv3 extension and might not be supported everywhere; it
-      might also require a secure transport. This param exists @since 0.7.
-  *)
+    @param sasl
+      if true, try to use SASL (plain) authentication with the server. This is
+      an IRCv3 extension and might not be supported everywhere; it might also
+      require a secure transport. *)
 
 val connect : config:Config.t -> io:Io.t -> unit -> (t, string) result
 (** Try to resolve the [server] name using DNS and connect to an IRC server.
