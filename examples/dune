@@ -8,4 +8,4 @@
  (name example_eio)
  (optional)
  (modules example_eio)
- (libraries irky-eio eio_main logs))
+ (libraries irky-eio eio_main logs unix))

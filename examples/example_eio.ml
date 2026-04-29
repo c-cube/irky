@@ -5,9 +5,10 @@ module Log = (val Logs.src_log (Logs.Src.create "irky-example"))
 let host = ref "irc.libera.chat"
 let port = ref 6697 (* Standard IRC TLS port *)
 let nick = ref "irkytest_eio"
+let password = ref None
 let debug = ref false
-let channel = ref "##demo_irc"
-let check_cert = ref true
+let channel = ref "##test123"
+let check_cert = ref false
 let ssl = ref true
 
 let on_msg client msg =
@@ -35,7 +36,9 @@ let main () : unit =
       Irky_eio.io ~net ~clock ~sw
   in
 
-  let config = C.Config.make ~server:!host ~port:!port ~nick:!nick () in
+  let config =
+    C.Config.make ~server:!host ~port:!port ~nick:!nick ?password:!password ()
+  in
   C.reconnect_loop ~io ~reconnect_delay:60.0
     ~connect:(fun () -> C.connect ~config ~io ())
     ~on_connect:(fun client ->
@@ -49,6 +52,11 @@ let options =
   [
     "-h", Arg.Set_string host, " set remote server host name";
     "-p", Arg.Set_int port, " set remote server port";
+    "-n", Arg.Set_string nick, " set nick";
+    "--nick", Arg.Set_string nick, " set nick";
+    ( "--password",
+      Arg.String (fun s -> password := Some s),
+      " set password (SASL)" );
     "--chan", Arg.Set_string channel, " channel to join";
     "-d", Arg.Set debug, " enable debug";
     "--ssl", Arg.Set ssl, " use ssl";
@@ -59,6 +67,28 @@ let options =
   ]
   |> Arg.align
 
+let reporter () =
+  let report _src level ~over k msgf =
+    let k _ =
+      over ();
+      k ()
+    in
+    msgf @@ fun ?header ?tags:_ fmt ->
+    let now = Unix.gettimeofday () in
+    let tm = Unix.localtime now in
+    let ppf =
+      if level = Logs.App then
+        Format.std_formatter
+      else
+        Format.err_formatter
+    in
+    Format.kfprintf k ppf
+      ("[%02d:%02d:%02d] %a @[" ^^ fmt ^^ "@]@.")
+      tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec Logs.pp_header
+      (level, header)
+  in
+  { Logs.report }
+
 let () =
   Arg.parse options ignore "example_eio [options]";
   Logs.set_level ~all:true
@@ -67,5 +97,5 @@ let () =
           Logs.Debug
         else
           Logs.Info));
-  Logs.set_reporter @@ Logs.format_reporter ();
+  Logs.set_reporter @@ reporter ();
   main ()
