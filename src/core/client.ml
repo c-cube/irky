@@ -120,16 +120,20 @@ let wait_for_welcome ~start (self : t) ~nick =
   let rec loop () =
     let now = self.io.time () in
     let timeout = start +. welcome_timeout -. now in
-    if timeout < 0.1 then
-      ()
-    else if nick_try.tries > max_nick_retries then
-      ()
-    else (
+    if timeout < 0.1 then (
+      Log.err (fun k -> k "timed out waiting for welcome message");
+      shutdown self
+    ) else if nick_try.tries > max_nick_retries then (
+      Log.err (fun k -> k "too many nick retries, giving up");
+      shutdown self
+    ) else (
       (* wait a bit more *)
       assert (timeout > 0.);
-      (* logf "wait for welcome message (%ds)" timeout >>= fun () -> *)
       match next_line_ ~timeout self with
-      | Timeout | End -> ()
+      | Timeout ->
+        Log.err (fun k -> k "timed out waiting for welcome message");
+        shutdown self
+      | End -> ()
       | Read line ->
         Log.debug (fun k -> k "read: %s" line);
         (match M.parse line with
@@ -187,17 +191,29 @@ let connect ~(config : Config.t) ~io () =
     Ok conn
   with Failure msg -> Error msg
 
-let default_timeout = 80.
+let default_timeout = 300.
+let default_ping_interval = 90.
 
-let listen ?timeout:(server_timeout = default_timeout) (self : t) f : unit =
+let listen ?timeout:(server_timeout = default_timeout)
+    ?(ping_interval = default_ping_interval) (self : t) f : unit =
   let last_seen = ref @@ self.io.time () in
+  let last_ping = ref @@ self.io.time () in
   while not (terminated self) do
     let now = self.io.time () in
-    let read_timeout = max 0. (!last_seen +. server_timeout -. now) in
+    let time_until_disconnect = !last_seen +. server_timeout -. now in
+    let time_until_ping = !last_ping +. ping_interval -. now in
+    let read_timeout = max 0. (min time_until_disconnect time_until_ping) in
     match next_line_ ~timeout:read_timeout self with
     | Timeout ->
-      Log.info (fun k -> k "client timeout");
-      shutdown self
+      let now = self.io.time () in
+      if now -. !last_seen >= server_timeout then (
+        Log.info (fun k -> k "client timeout, shutting down");
+        shutdown self
+      ) else (
+        Log.info (fun k -> k "sending ping to server");
+        last_ping := now;
+        send_ping self ~message1:"ping" ~message2:""
+      )
     | End ->
       Log.info (fun k -> k "connection closed");
       shutdown self
@@ -209,17 +225,18 @@ let listen ?timeout:(server_timeout = default_timeout) (self : t) f : unit =
       (match M.parse line with
       | Ok { M.command = M.PING (message1, message2); _ } ->
         (* Handle pings without calling the callback. *)
-        Log.debug (fun k -> k "reply pong to server");
+        Log.info (fun k -> k "received PING, sending PONG");
         send_pong self ~message1 ~message2
-      | Ok { M.command = M.PONG _; _ } -> () (* active response from server *)
+      | Ok { M.command = M.PONG _; _ } ->
+        Log.debug (fun k -> k "received PONG from server")
       | Ok msg -> f self msg
       | Error err -> Log.err (fun k -> k "invalid message received: %s" err))
   done
 
 exception Exit_reconnect_loop
 
-let reconnect_loop ?timeout ?(reconnect = true) ~reconnect_delay ~(io : Io.t)
-    ~connect ~on_connect f : unit =
+let reconnect_loop ?timeout ?ping_interval ?(reconnect = true) ~reconnect_delay
+    ~(io : Io.t) ~connect ~on_connect f : unit =
   let reconnect_delay = max reconnect_delay 2. in
   let continue = ref true in
   while !continue do
@@ -230,7 +247,7 @@ let reconnect_loop ?timeout ?(reconnect = true) ~reconnect_delay ~(io : Io.t)
          if not reconnect then continue := false
        | Ok connection ->
          on_connect connection;
-         listen ?timeout connection f;
+         listen ?timeout ?ping_interval connection f;
          Log.info (fun k -> k "connection terminated.");
          if not reconnect then continue := false
      with

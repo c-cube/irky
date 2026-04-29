@@ -52,18 +52,24 @@ val connect : config:Config.t -> io:Io.t -> unit -> (t, string) result
     Returns [Error msg] if DNS resolution fails or connection fails. See
     {!connect_exn} for more details. *)
 
-val listen : ?timeout:float -> t -> (t -> Message.t -> unit) -> unit
+val listen :
+  ?timeout:float ->
+  ?ping_interval:float ->
+  t ->
+  (t -> Message.t -> unit) ->
+  unit
 (** [listen connection f] listens for incoming messages on [connection]. All
     server pings are handled internally; all other messages are passed, along
     with [connection], to [callback].
-    @param timeout
-      number of seconds without receiving a "ping" from the server, before which
-      we consider we're disconnected. *)
+    @param timeout seconds of silence before disconnecting (default: 300s)
+    @param ping_interval
+      seconds of silence before sending a proactive PING (default: 90s) *)
 
 exception Exit_reconnect_loop
 
 val reconnect_loop :
   ?timeout:float ->
+  ?ping_interval:float ->
   ?reconnect:bool ->
   reconnect_delay:float ->
   io:Io.t ->
@@ -98,7 +104,10 @@ val reconnect_loop :
     the {!Exit_reconnect_loop} exception is raised from within the callback.
 
     @param timeout
-      seconds without server ping before considering us disconnected
+      seconds without server ping before considering us disconnected (default:
+      300s)
+    @param ping_interval
+      seconds of silence before sending a proactive PING (default: 90s)
     @param reconnect
       if [false], stops after first disconnection (default: [true])
     @param reconnect_delay minimum seconds to wait before reconnecting
