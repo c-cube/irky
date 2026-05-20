@@ -1,5 +1,7 @@
 (lang dune 3.0)
 (generate_opam_files true)
+(version 0.1)
+(source (github c-cube/irky))
 (name irky)
 (license MIT)
 
