@@ -23,7 +23,7 @@
   (synopsis "IRC client library using Eio")
   (depends
     (ocaml (>= 5.0))
-    (eio (>= 0.12))
+    (eio (>= 1.2))
     (eio-ssl (>= 0.3))
     (eio_main :with-test)
     (irky (= :version))
