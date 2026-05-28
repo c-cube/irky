@@ -74,8 +74,9 @@ val reconnect_loop :
   reconnect_delay:float ->
   io:Io.t ->
   connect:(unit -> (t, string) result) ->
-  on_connect:(t -> unit) ->
-  (t -> Message.t -> unit) ->
+  on_connect:(t -> 'st) ->
+  ?on_disconnect:(t -> 'st -> unit) ->
+  (t -> 'st -> Message.t -> unit) ->
   unit
 (** The main entrypoint for a client that automatically reconnects.
 
@@ -92,7 +93,7 @@ val reconnect_loop :
       ~on_connect:(fun client ->
         C.send_join client ~channel:"##mychannel";
         C.send_privmsg client ~target:"##mychannel" ~message:"Hello!")
-      (fun client msg ->
+      (fun client () msg ->
         match msg.Message.command with
         | Message.PRIVMSG (target, text) ->
             (* handle messages *)
@@ -116,7 +117,10 @@ val reconnect_loop :
       closure over {!connect} with your {!Config.t}
     @param on_connect
       called immediately after each successful connection, useful for joining
-      channels, sending initial messages, etc.
+      channels, sending initial messages, etc. Returns some state value,
+      or just [()].
+    @param on_disconnect passed the state returned by [on_connect], and can act
+      on it.
     @param f
       callback invoked for every message received from the server; raising
       {!Exit_reconnect_loop} here will exit the loop *)

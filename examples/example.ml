@@ -10,7 +10,7 @@ let ssl = ref false
 let check_certif = ref false
 let channel = ref "##demo_irc"
 
-let on_msg client result =
+let on_msg client () result =
   match result with
   | { M.command = M.Other _; _ } as msg ->
     Log.app (fun k -> k "got unknown message: %s" (M.show msg))

@@ -11,7 +11,7 @@ let channel = ref "##test123"
 let check_cert = ref false
 let ssl = ref true
 
-let on_msg client msg =
+let on_msg client () msg =
   match msg with
   | { M.command = M.Other _; _ } as msg ->
     Log.app (fun k -> k "got unknown message: %s" (M.show msg))

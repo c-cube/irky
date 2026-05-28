@@ -236,7 +236,7 @@ let listen ?timeout:(server_timeout = default_timeout)
 exception Exit_reconnect_loop
 
 let reconnect_loop ?timeout ?ping_interval ?(reconnect = true) ~reconnect_delay
-    ~(io : Io.t) ~connect ~on_connect f : unit =
+    ~(io : Io.t) ~connect ~on_connect ?(on_disconnect=fun _ _ -> ()) f : unit =
   let reconnect_delay = max reconnect_delay 2. in
   let continue = ref true in
   while !continue do
@@ -246,9 +246,10 @@ let reconnect_loop ?timeout ?ping_interval ?(reconnect = true) ~reconnect_delay
          Log.info (fun k -> k "could not connect: %s" msg);
          if not reconnect then continue := false
        | Ok connection ->
-         on_connect connection;
-         listen ?timeout ?ping_interval connection f;
+         let st = on_connect connection in
+         listen ?timeout ?ping_interval connection (fun conn msg -> f conn st msg);
          Log.info (fun k -> k "connection terminated.");
+         on_disconnect connection st;
          if not reconnect then continue := false
      with
     | Exit_reconnect_loop ->
