@@ -39,6 +39,13 @@ val send_quit : ?msg:string -> t -> unit -> unit
 val send_user : t -> username:string -> mode:int -> realname:string -> unit
 (** Send the USER command. *)
 
+val active : t -> bool
+(** Currently active? becomes [false] after call to {!shutdown} or network
+    disconnection *)
+
+val terminated : t -> bool
+(** Negation of [active] *)
+
 val connect_exn : config:Config.t -> io:Io.t -> unit -> t
 (** Connect to an IRC server at hostname [host].
     @raise Failure if DNS resolution fails or connection fails.
@@ -117,10 +124,10 @@ val reconnect_loop :
       closure over {!connect} with your {!Config.t}
     @param on_connect
       called immediately after each successful connection, useful for joining
-      channels, sending initial messages, etc. Returns some state value,
-      or just [()].
-    @param on_disconnect passed the state returned by [on_connect], and can act
-      on it.
+      channels, sending initial messages, etc. Returns some state value, or just
+      [()].
+    @param on_disconnect
+      passed the state returned by [on_connect], and can act on it.
     @param f
       callback invoked for every message received from the server; raising
       {!Exit_reconnect_loop} here will exit the loop *)
