@@ -9,25 +9,26 @@
 (maintainers "simon cruanes")
 
 (package
-  (name irky)
-  (synopsis "The Irky IRC client library")
-  (depends
-    (ocaml (>= 5.0))
-    (base64 (>= 3.5))
-    (iostream (>= 0.3))
-    logs
-    (ounit2 :with-test))
-  (depopts
-    ssl))
+ (name irky)
+ (synopsis "The Irky IRC client library")
+ (depends
+  (ocaml (>= 5.0))
+  (base64 (>= 3.5))
+  (iostream (>= 0.3))
+  logs
+  (ounit2 :with-test))
+ (depopts
+  ssl))
 
 (package
-  (name irky-eio)
-  (synopsis "IRC client library using Eio")
-  (depends
-    (ocaml (>= 5.0))
-    (eio (>= 1.2))
-    (eio-ssl (>= 0.3))
-    (eio_main :with-test)
-    (irky (= :version))
-    logs
-    (base64 (>= 3.5))))
+ (name irky-eio)
+ (synopsis "IRC client library using Eio")
+ (depends
+  (ocaml (>= 5.0))
+  (eio (>= 1.2))
+  (eio-ssl (>= 0.3))
+  (eio_main :with-test)
+  (iostream (>= 0.3))
+  (irky (= :version))
+  logs
+  (base64 (>= 3.5))))
